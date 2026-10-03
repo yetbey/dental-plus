@@ -11,6 +11,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../data/auth_error_mapper.dart';
 import 'auth_controller.dart';
+import 'widgets/social_sign_in_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -41,8 +42,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     if (!success && mounted) {
-      final error = ref.read(authControllerProvider).error!;
-      showAppSnackBar(context, mapAuthError(error), isError: true);
+      final error = ref.read(authControllerProvider).error;
+      if (error != null) {
+        showAppSnackBar(context, mapAuthError(error), isError: true);
+      }
     }
   }
 
@@ -86,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: Icons.lock_outline,
                     isPassword: true,
                     textInputAction: TextInputAction.done,
-                    validator: Validators.password,
+                    validator: Validators.loginPassword,
                     onSubmitted: (_) => _submit(),
                   ),
                   Align(
@@ -101,6 +104,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     isLoading: isLoading,
                     onPressed: _submit,
                   ),
+                  const SizedBox(height: AppConstants.paddingL),
+                  const _OrDivider(),
+                  const SizedBox(height: AppConstants.paddingL),
+                  const SocialSignInButtons(),
                   const SizedBox(height: AppConstants.paddingM),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -118,6 +125,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingM),
+          child: Text(
+            'veya',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
     );
   }
 }

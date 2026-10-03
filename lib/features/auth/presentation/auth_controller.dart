@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/auth_error_mapper.dart';
 import '../data/auth_repository.dart';
 
 class AuthController extends AsyncNotifier<void> {
@@ -29,10 +30,20 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<void> signOut() => _repo.signOut();
 
+  Future<bool> signInWithGoogle() => _run(_repo.signInWithGoogle);
+  Future<bool> signInWithApple() => _run(_repo.signInWithApple);
+  Future<bool> resendVerificationEmail() => _run(_repo.resendVerificationEmail);
+  Future<bool> checkEmailVerified() => _repo.reloadAndCheckVerified();
+
   Future<bool> _run(Future<void> Function() action) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(action);
-    return !state.hasError;
+    final result = await AsyncValue.guard(action);
+    if (result case AsyncError(:final error) when isAuthCancellation(error)) {
+      state = const AsyncData(null);
+      return false;
+    }
+    state = result;
+    return !result.hasError;
   }
 }
 
