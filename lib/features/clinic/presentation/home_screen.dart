@@ -59,7 +59,7 @@ class HomePage extends StatelessWidget {
           const SizedBox(height: 14),
           GridView.count(
             crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.95,
+            mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.82,
             children: _services.map((s) => _ServiceTile(icon: s.$1, title: s.$2, sub: s.$3, danger: s.$4)).toList(),
           ),
           const SizedBox(height: 28),

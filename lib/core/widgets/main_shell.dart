@@ -22,6 +22,13 @@ class _BottomBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   const _BottomBar({required this.index, required this.onTap});
 
+  static const _items = [
+    (Icons.home_outlined, Icons.home_rounded, 'Ana Sayfa'),
+    (Icons.workspace_premium_outlined, Icons.workspace_premium, 'Tedaviler'),
+    (Icons.edit_calendar_outlined, Icons.edit_calendar_rounded, 'Randevu AI'),
+    (Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -35,57 +42,78 @@ class _BottomBar extends StatelessWidget {
         child: SizedBox(
           height: 68,
           child: Row(children: [
-            _item(0, Icons.home_outlined, Icons.home_rounded, 'Ana Sayfa'),
-            _item(1, Icons.workspace_premium_outlined, Icons.workspace_premium, 'Tedaviler'),
-            _center(),
-            _item(3, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
+            for (var i = 0; i < _items.length; i++)
+              Expanded(
+                child: _NavItem(
+                  off: _items[i].$1,
+                  on: _items[i].$2,
+                  label: _items[i].$3,
+                  active: index == i,
+                  onTap: () => onTap(i),
+                ),
+              ),
           ]),
         ),
       ),
     );
   }
+}
 
-  Widget _item(int i, IconData off, IconData on, String label) {
-    final active = index == i;
-    final color = active ? AppColors.secondary : AppColors.muted;
-    return Expanded(
-      child: InkWell(
-        onTap: () => onTap(i),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(active ? on : off, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(label, style: tx(11, w: FontWeight.w600, c: color)),
-        ]),
-      ),
-    );
-  }
+class _NavItem extends StatelessWidget {
+  final IconData off, on;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _NavItem({
+    required this.off,
+    required this.on,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
-  Widget _center() {
-    final active = index == 2;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onTap(2),
-        behavior: HitTestBehavior.opaque,
-        child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
-          Positioned(
-            top: -22,
-            child: Container(
-              width: 56, height: 56,
+  @override
+  Widget build(BuildContext context) {
+    const duration = Duration(milliseconds: 250);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          AnimatedPositioned(
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            top: active ? -14 : 12,
+            child: AnimatedContainer(
+              duration: duration,
+              curve: Curves.easeOutCubic,
+              width: active ? 52 : 28,
+              height: active ? 52 : 28,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: active ? AppColors.primary : Colors.transparent,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-                boxShadow: const [BoxShadow(color: Color(0x4D0F2B48), blurRadius: 16, offset: Offset(0, 8))],
+                border: active ? Border.all(color: Colors.white, width: 4) : null,
+                boxShadow: active
+                    ? const [BoxShadow(color: Color(0x4D0F2B48), blurRadius: 16, offset: Offset(0, 8))]
+                    : null,
               ),
-              child: const Icon(Icons.edit_calendar_rounded, color: Colors.white, size: 24),
+              child: Icon(
+                active ? on : off,
+                size: 24,
+                color: active ? Colors.white : AppColors.muted,
+              ),
             ),
           ),
           Positioned(
             bottom: 10,
-            child: Text('Randevu AI',
-                style: tx(11, w: FontWeight.w600, c: active ? AppColors.secondary : AppColors.muted)),
+            child: Text(
+              label,
+              style: tx(11, w: FontWeight.w600, c: active ? AppColors.secondary : AppColors.muted),
+            ),
           ),
-        ]),
+        ],
       ),
     );
   }
