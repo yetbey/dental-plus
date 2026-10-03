@@ -13,3 +13,8 @@ final currentUserProvider = StreamProvider<AppUser?>((ref) {
   if (uid == null) return Stream.value(null);
   return ref.watch(authRepositoryProvider).watchUser(uid);
 });
+
+final hasPasswordProvider = Provider<bool>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  return user?.providerData.any((p) => p.providerId == 'password') ?? false;
+});

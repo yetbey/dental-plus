@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/auth/presentation/account_security_screen.dart';
 import '../../features/auth/presentation/auth_providers.dart';
+import '../../features/auth/presentation/change_password_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
@@ -19,6 +21,8 @@ abstract final class AppRoutes {
   static const String verifyEmail = '/verify-email';
   static const String home = '/';
   static const String admin = '/admin';
+  static const String accountSecurity = '/account';
+  static const String changePassword = '/account/change-password';
 
   /// Sadece oturum açmamış kullanıcıların görebileceği ekranlar.
   static const authRoutes = {login, register, forgotPassword};
@@ -59,10 +63,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final appUser = userState.value;
       if (appUser == null) return goTo(AppRoutes.splash);
 
-      // 5) Rol bazlı yönlendirme.
+      // 5) Rol bazlı yönlendirme. Hesap ekranları her iki rol için de açık.
       final inAdminArea = location.startsWith(AppRoutes.admin);
+      final inAccountArea = location.startsWith(AppRoutes.accountSecurity);
       if (appUser.isAdmin) {
-        return inAdminArea ? null : AppRoutes.admin;
+        return inAdminArea || inAccountArea ? null : AppRoutes.admin;
       }
       if (inAdminArea ||
           location == AppRoutes.splash ||
@@ -100,6 +105,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.admin,
         builder: (_, _) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.accountSecurity,
+        builder: (_, _) => const AccountSecurityScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePassword,
+        builder: (_, _) => const ChangePasswordScreen(),
       ),
     ],
   );

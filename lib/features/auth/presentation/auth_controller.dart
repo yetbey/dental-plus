@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../data/auth_error_mapper.dart';
 import '../data/auth_repository.dart';
 
@@ -17,13 +19,27 @@ class AuthController extends AsyncNotifier<void> {
     required String email,
     required String password,
     String? phone,
-  }) =>
-      _run(() => _repo.signUp(
-        fullName: fullName,
-        email: email,
-        password: password,
-        phone: phone,
-      ));
+  }) => _run(
+    () => _repo.signUp(
+      fullName: fullName,
+      email: email,
+      password: password,
+      phone: phone,
+    ),
+  );
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) => _run(
+    () => _repo.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    ),
+  );
+
+  Future<void> deleteAccount({String? password}) =>
+  _run(() => _repo.deleteAccount(password: password));
 
   Future<bool> sendPasswordReset(String email) =>
       _run(() => _repo.sendPasswordReset(email));
@@ -47,5 +63,6 @@ class AuthController extends AsyncNotifier<void> {
   }
 }
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, void>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, void>(
+  AuthController.new,
+);

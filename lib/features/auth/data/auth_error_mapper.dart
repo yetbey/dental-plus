@@ -18,6 +18,10 @@ String mapAuthError(Object error) {
     'invalid-email' => 'Geçerli bir e-posta adresi girin.',
   // E-posta numaralandırma koruması açıkken Firebase üçünü de
   // 'invalid-credential' olarak döner. Mesaj bilerek genel tutuldu.
+    'user-mismatch' =>
+    'Seçilen hesap mevcut hesabınızla eşleşmiyor. Lütfen aynı hesabı seçin.',
+    'missing-password' => 'Lütfen mevcut şifrenizi girin.',
+    'no-current-user' => 'Oturumunuz sona ermiş. Lütfen tekrar giriş yapın.',
     'invalid-credential' ||
     'wrong-password' ||
     'user-not-found' =>

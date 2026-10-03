@@ -25,11 +25,76 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _auth.signInWithEmailAndPassword(
+    final credential = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+
+    await _ensureUserDocument(credential.user!);
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _requireUser();
+    await _reauthenticate(user, password: currentPassword);
+    await user.updatePassword(newPassword);
+  }
+
+  Future<void> deleteAccount({String? password}) async {
+    final user = _requireUser();
+    final appleAuthCode = await _reauthenticate(user, password: password);
+    await _users.doc(user.uid).delete();
+
+    try {
+      if (appleAuthCode != null) {
+        await _auth.revokeTokenWithAuthorizationCode(appleAuthCode);
+      }
+      await user.delete();
+    } catch (_) {
+      await signOut();
+      rethrow;
+    }
+
+    try {
+      await _ensureGoogleInitialized();
+      await _googleSignIn.disconnect();
+    } catch (_) {}
+  }
+
+  Future<String?> _reauthenticate(User user, {String? password}) async {
+    final providers = user.providerData.map((p) => p.providerId).toSet();
+
+    if (providers.contains('password')) {
+      if (password == null || password.isEmpty) {
+        throw FirebaseAuthException(code: 'missing-password');
+      }
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: user.email!, password: password),
+      );
+      return null;
+    }
+
+    if (providers.contains('google.com')){
+      await _ensureGoogleInitialized();
+      final account = await _googleSignIn.authenticate();
+      await user.reauthenticateWithCredential(
+        GoogleAuthProvider.credential(idToken: account.authentication.idToken),
+      );
+      return null;
+    }
+
+    if (providers.contains('apple.com')) {
+      final result = await user.reauthenticateWithProvider(AppleAuthProvider());
+      return result.additionalUserInfo?.authorizationCode;
+    }
+
+    throw FirebaseAuthException(code: 'operation-not-allowed');
+  }
+
+  User _requireUser() =>
+    _auth.currentUser ?? (throw FirebaseAuthException(code: 'no-current-user'));
 
   Future<void> signUp({
     required String fullName,
