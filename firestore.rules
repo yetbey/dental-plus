@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      // Kullanıcı kendi profilini, admin herkesin profilini okuyabilir.
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // Kayıt sırasında sadece "patient" rolüyle doküman oluşturulabilir.
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'patient';
+
+      // Kullanıcı kendi profilini güncelleyebilir ama rolünü DEĞİŞTİREMEZ.
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role)
+        || isAdmin()
+      );
+
+      allow delete: if false;
+    }
+  }
+}
