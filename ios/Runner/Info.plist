@@ -6,6 +6,10 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>Profil fotoğrafı seçmek için galerinize erişim gerekir.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Profil fotoğrafı çekmek için kameraya erişim gerekir.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Dental Plus</string>
 	<key>CFBundleExecutable</key>

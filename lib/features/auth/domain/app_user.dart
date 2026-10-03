@@ -10,7 +10,9 @@ class AppUser {
     required this.role,
     required this.createdAt,
     this.phone,
-});
+    this.bloodType,
+    this.allergies = const [],
+  });
 
   final String uid;
   final String email;
@@ -18,8 +20,12 @@ class AppUser {
   final String? phone;
   final UserRole role;
   final DateTime createdAt;
+  final String? bloodType;
+  final List<String> allergies;
 
   bool get isAdmin => role == UserRole.admin;
+
+  String get protocolNo => 'DN-${uid.substring(0, 5).toUpperCase()}';
 
   factory AppUser.fromMap(Map<String, dynamic> map, String uid) {
     return AppUser(
@@ -28,8 +34,11 @@ class AppUser {
       fullName: map['fullName'] as String? ?? '',
       phone: map['phone'] as String?,
       role: map['role'] == 'admin' ? UserRole.admin : UserRole.patient,
-      createdAt:
-      (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      bloodType: map['bloodType'] as String?,
+      allergies: ((map['allergies'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -40,5 +49,4 @@ class AppUser {
     'role': role.name,
     'createdAt': Timestamp.fromDate(createdAt),
   };
-
 }

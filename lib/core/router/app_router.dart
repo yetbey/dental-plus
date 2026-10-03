@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/appointments/presentation/appointment_page.dart';
 import '../../features/auth/presentation/account_security_screen.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/change_password_screen.dart';
@@ -11,7 +11,10 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
+import '../../features/clinic/presentation/clinic_page.dart';
 import '../../features/clinic/presentation/home_screen.dart';
+import '../../features/profile/presentation/profile_page.dart';
+import '../widgets/main_shell.dart';
 
 abstract final class AppRoutes {
   static const String splash = '/splash';
@@ -20,6 +23,9 @@ abstract final class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String verifyEmail = '/verify-email';
   static const String home = '/';
+  static const String clinic = '/clinic';
+  static const String appointment = '/appointment';
+  static const String profile = '/profile';
   static const String admin = '/admin';
   static const String accountSecurity = '/account';
   static const String changePassword = '/account/change-password';
@@ -29,7 +35,7 @@ abstract final class AppRoutes {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final refresh = ValueNotifier<int>(0);
+  final refresh = ValueNotifier(0);
   ref.listen(authStateProvider, (_, _) => refresh.value++);
   ref.listen(currentUserProvider, (_, _) => refresh.value++);
 
@@ -50,9 +56,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // 2) Giriş yapılmamışsa sadece auth ekranlarına izin ver.
       final firebaseUser = authState.value;
       if (firebaseUser == null) {
-        return AppRoutes.authRoutes.contains(location)
-            ? null
-            : AppRoutes.login;
+        return AppRoutes.authRoutes.contains(location) ? null : AppRoutes.login;
       }
 
       // 3) E-posta doğrulanmamışsa doğrulama ekranına gönder.
@@ -69,12 +73,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (appUser.isAdmin) {
         return inAdminArea || inAccountArea ? null : AppRoutes.admin;
       }
+
       if (inAdminArea ||
           location == AppRoutes.splash ||
           location == AppRoutes.verifyEmail ||
           AppRoutes.authRoutes.contains(location)) {
         return AppRoutes.home;
       }
+
       return null;
     },
     routes: [
@@ -98,10 +104,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verifyEmail,
         builder: (_, _) => const VerifyEmailScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (_, _) => const HomeScreen(),
+
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => MainShell(shell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.home,
+              builder: (_, _) => const HomePage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.clinic,
+              builder: (_, _) => const ClinicPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.appointment,
+              builder: (_, _) => const AppointmentPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.profile,
+              builder: (_, _) => const ProfilePage(),
+            ),
+          ]),
+        ],
       ),
+
       GoRoute(
         path: AppRoutes.admin,
         builder: (_, _) => const AdminDashboardScreen(),

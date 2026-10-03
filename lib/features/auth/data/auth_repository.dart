@@ -47,6 +47,8 @@ class AuthRepository {
     final appleAuthCode = await _reauthenticate(user, password: password);
     await _users.doc(user.uid).delete();
 
+    await _firestore.collection('userAvatars').doc(user.uid).delete();
+
     try {
       if (appleAuthCode != null) {
         await _auth.revokeTokenWithAuthorizationCode(appleAuthCode);
