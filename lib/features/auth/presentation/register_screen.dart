@@ -8,6 +8,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../data/auth_error_mapper.dart';
 import 'auth_controller.dart';
+import 'widgets/password_strength_indicator.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -57,8 +58,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
 
     if (!success && mounted) {
-      final error = ref.read(authControllerProvider).error!;
-      showAppSnackBar(context, mapAuthError(error), isError: true);
+      final error = ref.read(authControllerProvider).error;
+      if (error != null) {
+        showAppSnackBar(context, mapAuthError(error), isError: true);
+      }
     }
   }
 
@@ -105,8 +108,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   label: 'Şifre',
                   icon: Icons.lock_outline,
                   isPassword: true,
-                  validator: Validators.password,
+                  validator: Validators.newPassword,
                 ),
+                PasswordStrengthIndicator(controller: _passwordController),
                 gap,
                 AppTextField(
                   controller: _confirmController,
@@ -117,6 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   validator: (v) => v != _passwordController.text
                       ? 'Şifreler eşleşmiyor.'
                       : null,
+                  onSubmitted: (_) => _submit(),
                 ),
                 CheckboxListTile(
                   value: _kvkkAccepted,

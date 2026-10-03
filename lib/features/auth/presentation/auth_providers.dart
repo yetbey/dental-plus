@@ -5,11 +5,11 @@ import '../data/auth_repository.dart';
 import '../domain/app_user.dart';
 
 final authStateProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authRepositoryProvider).authStateChanges();
+  return ref.watch(authRepositoryProvider).userChanges();
 });
 
 final currentUserProvider = StreamProvider<AppUser?>((ref) {
-  final user = ref.watch(authStateProvider).value;
-  if (user == null) return Stream.value(null);
-  return ref.watch(authRepositoryProvider).watchUser(user.uid);
+  final uid = ref.watch(authStateProvider.select((s) => s.value?.uid));
+  if (uid == null) return Stream.value(null);
+  return ref.watch(authRepositoryProvider).watchUser(uid);
 });
