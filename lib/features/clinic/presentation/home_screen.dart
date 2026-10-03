@@ -226,13 +226,13 @@ class _ServiceTile extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
-          width: 48, height: 48,
+          width: 44, height: 44,
           decoration: BoxDecoration(
               color: danger ? const Color(0xFFFEE2E2) : const Color(0xFFE5EEFF),
               borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: danger ? AppColors.danger : AppColors.primary),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(title, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: tx(12, w: FontWeight.w700, c: c)),
         Text(sub, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
