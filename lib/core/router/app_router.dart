@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/admin/presentation/admin_appointments_screen.dart';
+import '../../features/admin/presentation/admin_articles_screen.dart';
+import '../../features/admin/presentation/admin_clinic_screen.dart';
+import '../../features/admin/presentation/admin_doctor_screen.dart';
+import '../../features/admin/presentation/admin_treatments_screen.dart';
 import '../../features/appointments/presentation/appointment_page.dart';
 import '../../features/auth/presentation/account_security_screen.dart';
 import '../../features/auth/presentation/auth_providers.dart';
@@ -13,6 +17,8 @@ import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/clinic/presentation/clinic_page.dart';
 import '../../features/clinic/presentation/home_screen.dart';
+import '../../features/content/presentation/article_detail_page.dart';
+import '../../features/content/presentation/articles_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../widgets/main_shell.dart';
 
@@ -104,6 +110,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verifyEmail,
         builder: (_, _) => const VerifyEmailScreen(),
       ),
+      GoRoute(
+        path: '/admin/treatments',
+        builder: (_, _) => const AdminTreatmentsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/doctor',
+        builder: (_, _) => const AdminDoctorScreen(),
+      ),
+      GoRoute(
+        path: '/admin/articles',
+        builder: (_, _) => const AdminArticlesScreen(),
+      ),
 
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(shell: shell),
@@ -133,6 +151,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ]),
         ],
+      ),
+
+      GoRoute(
+        path: '/articles',
+        builder: (_, _) => const ArticlesPage(),
+      ),
+      GoRoute(
+        path: '/article/:id',
+        builder: (_, state) => ArticleDetailPage(id: state.pathParameters['id']!),
+      ),
+
+      GoRoute(
+        path: '/admin/clinic',
+        builder: (_, _) => const AdminClinicScreen(),
       ),
 
       GoRoute(

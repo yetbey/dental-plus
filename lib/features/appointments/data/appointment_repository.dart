@@ -18,6 +18,7 @@ class AppointmentRepository {
   AppointmentRepository(this._db);
 
   final FirebaseFirestore _db;
+  static const maxActivePerPatient = 3;
 
   CollectionReference<Map<String, dynamic>> get _appointments =>
       _db.collection('appointments');
@@ -42,6 +43,23 @@ class AppointmentRepository {
     if (!ClinicSchedule.isBookableTime(start)) {
       throw const AppointmentException(
         'Bu saat için randevu alınamıyor. Lütfen daha ileri bir saat seçin.',
+      );
+    }
+
+    final activeSnap = await _appointments
+    .where('patientId', isEqualTo: patientId)
+    .where('status', whereIn: [
+      AppointmentStatus.pending.name,
+      AppointmentStatus.confirmed.name,
+    ]).get();
+
+    final upcomingCount = activeSnap.docs
+    .where((d) => (d.data()['start'] as
+    Timestamp).toDate().isAfter(DateTime.now())).length;
+
+    if (upcomingCount >= maxActivePerPatient) {
+      throw const AppointmentException(
+        'En fazla 3 aktif randevunuz olabilir. Yeni randevu için mevcut randevularınızdan birini iptal edebilirsiniz.',
       );
     }
 

@@ -25,3 +25,14 @@ StreamProvider.autoDispose<List<Appointment>>((ref) {
 final allAppointmentsProvider = StreamProvider.autoDispose<List<Appointment>>((ref) {
   return ref.watch(appointmentRepositoryProvider).watchAllAppointments();
 });
+
+class PreselectedTreatment extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String id) => state = id;
+  void clear() => state = null;
+}
+
+final preselectedTreatmentProvider =
+NotifierProvider<PreselectedTreatment, String?>(PreselectedTreatment.new);

@@ -2,27 +2,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:dental_plus/core/theme/app_colors.dart';
 import 'package:dental_plus/core/theme/app_theme.dart';
 import 'package:dental_plus/core/widgets/common.dart';
-import 'package:dental_plus/features/auth/presentation/auth_providers.dart';
-
+import 'package:dental_plus/features/clinic/domain/treatment.dart';
+import '../../auth/presentation/auth_providers.dart';
+import '../../clinic/presentation/clinic_providers.dart';
 import '../appointment_providers.dart';
 import '../data/appointment_repository.dart';
 import '../domain/clinic_schedule.dart';
-
-const _treatments = [
-  (Icons.fact_check_outlined, 'İlk Muayene & Kontrol', 'Genel ağız ve diş muayenesi (Ücretsiz)'),
-  (Icons.emergency, 'Diş Ağrısı / Acil Girişim', 'Akut ağrı veya acil durum müdahalesi'),
-  (Icons.auto_awesome_outlined, 'Diş Beyazlatma (Bleaching)', 'Lazerli estetik klinik beyazlatma'),
-  (Icons.hardware_rounded, 'İmplant Danışmanlığı', '3D Tomografi & çene kemiği analizi'),
-  (Icons.cruelty_free_outlined, 'Ortodonti & Şeffaf Plak', 'Telsiz diş düzeltme ve kontrol'),
-];
-
-const _doctors = [
-  ('Dr. Dt. Mustafa Erkan', 'Estetik Diş Hekimi & Gülüş Tasarımı'),
-];
 
 const _months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos',
   'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -46,12 +34,25 @@ class AppointmentPage extends ConsumerStatefulWidget {
 }
 
 class _AppointmentPageState extends ConsumerState<AppointmentPage> {
-  int _treatment = 0;
-  int _doctor = 0;
+  String? _treatmentId;
   DateTime? _day;
   DateTime? _slot;
   bool _submitting = false;
   final _note = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applyPreselected());
+  }
+
+  void _applyPreselected() {
+    if (!mounted) return;
+    final id = ref.read(preselectedTreatmentProvider);
+    if (id == null) return;
+    setState(() => _treatmentId = id);
+    ref.read(preselectedTreatmentProvider.notifier).clear();
+  }
 
   @override
   void dispose() {
@@ -65,7 +66,7 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
       ..showSnackBar(SnackBar(content: Text(msg), action: action));
   }
 
-  Future<void> _submit(DateTime slot) async {
+  Future<void> _submit(DateTime slot, Treatment treatment) async {
     final user = ref.read(currentUserProvider).value;
     if (user == null) return;
 
@@ -77,14 +78,17 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
       return;
     }
 
+    final doctors = ref.read(doctorsProvider).asData?.value;
+    final doctorName = (doctors == null || doctors.isEmpty) ? null : doctors.first.name;
+
     setState(() => _submitting = true);
     try {
       await ref.read(appointmentRepositoryProvider).book(
         patientId: user.uid,
         patientName: user.fullName,
         patientPhone: user.phone,
-        treatment: _treatments[_treatment].$2,
-        doctorName: _doctor == 0 ? null : _doctors[_doctor].$1,
+        treatment: treatment.title,
+        doctorName: doctorName,
         start: slot,
         note: _note.text,
       );
@@ -133,6 +137,11 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String?>(preselectedTreatmentProvider, (_, next) {
+      if (next != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _applyPreselected());
+      }
+    });
     final days = ClinicSchedule.bookableDays();
     if (days.isEmpty) {
       return Scaffold(
@@ -140,6 +149,12 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
         body: Center(child: Text('Şu an uygun gün bulunmuyor.', style: tx(14, c: AppColors.muted))),
       );
     }
+
+    final treatmentsAsync = ref.watch(treatmentsProvider);
+    final treatments = treatmentsAsync.asData?.value ?? const <Treatment>[];
+    final selected = treatments.isEmpty
+        ? null
+        : treatments.firstWhere((t) => t.id == _treatmentId, orElse: () => treatments.first);
 
     final day = (_day != null && days.contains(_day)) ? _day! : days.first;
     final bookedIds = ref.watch(bookedSlotsProvider(day)).asData?.value;
@@ -160,34 +175,30 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
           child: ListView(padding: const EdgeInsets.fromLTRB(20, 20, 20, 24), children: [
             _title(Icons.medical_services_outlined, '1. Tedavi Türü', 'Zorunlu'),
             const SizedBox(height: 12),
-            for (var i = 0; i < _treatments.length; i++) ...[
-              _Option(
-                selected: _treatment == i,
-                onTap: () => setState(() => _treatment = i),
-                icon: _treatments[i].$1,
-                title: _treatments[i].$2,
-                subtitle: _treatments[i].$3,
-                danger: i == 1,
-                badge: i == 1 ? 'Öncelikli' : null,
+            treatmentsAsync.when(
+              loading: () => const Center(
+                child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
               ),
-              const SizedBox(height: 8),
-            ],
+              error: (_, _) => Text('Tedaviler yüklenemedi.', style: tx(13, c: AppColors.muted)),
+              data: (list) => list.isEmpty
+                  ? Text('Henüz tedavi eklenmemiş.', style: tx(13, c: AppColors.muted))
+                  : Column(children: [
+                for (final t in list) ...[
+                  _Option(
+                    selected: selected?.id == t.id,
+                    onTap: () => setState(() => _treatmentId = t.id),
+                    icon: t.icon,
+                    title: t.title,
+                    subtitle: t.subtitle,
+                    danger: t.urgent,
+                    badge: t.urgent ? 'Öncelikli' : null,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ]),
+            ),
             const SizedBox(height: 16),
-            _title(Icons.badge_outlined, '2. Hekim Tercihi', 'Opsiyonel'),
-            const SizedBox(height: 12),
-            for (var i = 0; i < _doctors.length; i++) ...[
-              _Option(
-                selected: _doctor == i,
-                onTap: () => setState(() => _doctor = i),
-                icon: i == 0 ? Icons.bolt_rounded : Icons.person_rounded,
-                title: _doctors[i].$1,
-                subtitle: _doctors[i].$2,
-                // badge: i == 0 ? 'Hızlı Randevu' : null,
-              ),
-              const SizedBox(height: 8),
-            ],
-            const SizedBox(height: 16),
-            _title(Icons.calendar_month_outlined, '3. Randevu Tarihi', _months[day.month - 1]),
+            _title(Icons.calendar_month_outlined, '2. Randevu Tarihi', _months[day.month - 1]),
             const SizedBox(height: 12),
             SizedBox(
               height: 84,
@@ -221,7 +232,7 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
               ),
             ),
             const SizedBox(height: 20),
-            _title(Icons.schedule, '4. Saat Dilimi',
+            _title(Icons.schedule, '3. Saat Dilimi',
                 '${day.day} ${_months[day.month - 1]} ${_weekFull[day.weekday - 1]}'),
             const SizedBox(height: 12),
             _slotGroup('Sabah Kuşağı', Icons.wb_sunny_outlined, morning, slot, bookedIds),
@@ -265,12 +276,12 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
             ),
           ]),
         ),
-        _confirmBar(slot),
+        _confirmBar(selected, slot),
       ]),
     );
   }
 
-  Widget _confirmBar(DateTime? slot) {
+  Widget _confirmBar(Treatment? treatment, DateTime? slot) {
     final summary = slot == null
         ? 'Lütfen bir saat seçin'
         : '${slot.day} ${_months[slot.month - 1]} ${_weekFull[slot.weekday - 1]}, ${ClinicSchedule.timeLabel(slot)}';
@@ -283,7 +294,7 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
       child: Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(_treatments[_treatment].$2,
+            Text(treatment?.title ?? 'Tedavi seçin',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: tx(14, w: FontWeight.w700, c: AppColors.primary)),
@@ -294,7 +305,7 @@ class _AppointmentPageState extends ConsumerState<AppointmentPage> {
         PillButton(
           label: _submitting ? 'Gönderiliyor...' : 'Randevu Talep Et',
           icon: _submitting ? null : Icons.arrow_forward,
-          onPressed: (slot == null || _submitting) ? null : () => _submit(slot),
+          onPressed: (slot == null || treatment == null || _submitting) ? null : () => _submit(slot, treatment),
         ),
       ]),
     );
