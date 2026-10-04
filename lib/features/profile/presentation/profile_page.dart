@@ -8,6 +8,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/phone_utils.dart';
 import '../../../core/widgets/common.dart';
+import '../../appointments/appointment_providers.dart';
+import '../../appointments/data/appointment_repository.dart';
+import '../../appointments/domain/appointment.dart';
+import '../../appointments/domain/clinic_schedule.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/auth_providers.dart';
@@ -224,14 +228,7 @@ class _ProfileBody extends ConsumerWidget {
         _CompletionCard(steps: steps, onTap: () => _openEdit(context)),
       ],
       const SizedBox(height: 24),
-      const SectionHeader(title: 'Tedavi & Randevu Geçmişi', subtitle: 'Klinik kayıtlarınız ve hekim notları'),
-      const SizedBox(height: 12),
-      _EmptyCard(
-        icon: Icons.medical_services_outlined,
-        text: 'Henüz tedavi kaydınız bulunmuyor. Randevularınız tamamlandıkça burada görünecek.',
-        actionLabel: 'Randevu Al',
-        onAction: () => context.go(AppRoutes.appointment),
-      ),
+      const _AppointmentsSection(),
       const SizedBox(height: 24),
       const SectionHeader(title: 'Dijital Röntgen & Radyoloji', subtitle: 'Radyolojik görüntü arşiviniz'),
       const SizedBox(height: 12),
@@ -258,7 +255,7 @@ class _ProfileBody extends ConsumerWidget {
       const SizedBox(height: 20),
       Center(
         child: Text(
-          'Sağlık verileriniz KVKK kapsamında korunmaktadır.\nDentNova Dental Health',
+          'Sağlık verileriniz KVKK kapsamında korunmaktadır.\nMustafa Erkan Dental Klinik',
           textAlign: TextAlign.center,
           style: tx(11, c: AppColors.mutedLight, h: 1.5),
         ),
@@ -480,6 +477,157 @@ class _CompletionCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text('Eksik: $missing', style: tx(12, c: AppColors.muted)),
+      ]),
+    );
+  }
+}
+
+const _monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz',
+  'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+String _fmtDate(DateTime d) => '${d.day} ${_monthNames[d.month - 1]} ${d.year}';
+
+(Color, Color) _statusColors(AppointmentStatus s) => switch (s) {
+  AppointmentStatus.pending => (const Color(0xFFFEF3C7), const Color(0xFFB45309)),
+  AppointmentStatus.confirmed => (const Color(0xFFD1FAE5), const Color(0xFF047857)),
+  AppointmentStatus.rejected => (const Color(0xFFFEE2E2), const Color(0xFFB91C1C)),
+  AppointmentStatus.cancelled => (const Color(0xFFF1F5F9), const Color(0xFF64748B)),
+  AppointmentStatus.completed => (const Color(0xFFE5EEFF), const Color(0xFF0F2B48)),
+};
+
+class _AppointmentsSection extends ConsumerWidget {
+  const _AppointmentsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(myAppointmentsProvider);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SectionHeader(
+        title: 'Tedavi & Randevu Geçmişi',
+        subtitle: 'Klinik kayıtlarınız ve hekim notları',
+      ),
+      const SizedBox(height: 12),
+      async.when(
+        loading: () => const Center(
+          child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
+        ),
+        error: (_, _) => const _EmptyCard(
+          icon: Icons.error_outline,
+          text: 'Randevularınız yüklenemedi. Lütfen daha sonra tekrar deneyin.',
+        ),
+        data: (list) {
+          if (list.isEmpty) {
+            return _EmptyCard(
+              icon: Icons.medical_services_outlined,
+              text: 'Henüz randevunuz bulunmuyor.',
+              actionLabel: 'Randevu Al',
+              onAction: () => context.go(AppRoutes.appointment),
+            );
+          }
+          final upcoming = list.where((a) => a.isUpcoming).toList()
+            ..sort((a, b) => a.start.compareTo(b.start));
+          final others = list.where((a) => !a.isUpcoming).toList();
+          final sorted = [...upcoming, ...others];
+          return Column(children: [
+            for (final a in sorted) ...[
+              _AppointmentCard(a),
+              const SizedBox(height: 12),
+            ],
+          ]);
+        },
+      ),
+    ]);
+  }
+}
+
+class _AppointmentCard extends ConsumerWidget {
+  final Appointment a;
+  const _AppointmentCard(this.a);
+
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Randevu iptal edilsin mi?'),
+        content: Text(
+          '${_fmtDate(a.start)} ${ClinicSchedule.timeLabel(a.start)} tarihli randevunuz iptal edilecek.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('İptal Et', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(appointmentRepositoryProvider).cancel(a);
+      if (context.mounted) _snack(context, 'Randevunuz iptal edildi');
+    } on AppointmentException catch (e) {
+      if (context.mounted) _snack(context, e.message);
+    } catch (_) {
+      if (context.mounted) _snack(context, 'İptal edilemedi, tekrar deneyin.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final (bg, fg) = _statusColors(a.status);
+    final adminNote = a.adminNote;
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: const Color(0xFFE5EEFF), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.medical_services_outlined, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(a.treatment,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tx(14, w: FontWeight.w700, c: AppColors.primary)),
+              Text(a.doctorName ?? 'Hekim: En erken müsait uzman',
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: tx(11, c: AppColors.muted)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Tag(a.status.label, bg: bg, fg: fg),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.muted),
+          const SizedBox(width: 6),
+          Text(_fmtDate(a.start), style: tx(12, c: AppColors.muted)),
+          const SizedBox(width: 14),
+          const Icon(Icons.access_time, size: 14, color: AppColors.muted),
+          const SizedBox(width: 6),
+          Text(ClinicSchedule.timeLabel(a.start), style: tx(12, c: AppColors.muted)),
+        ]),
+        if (adminNote != null && adminNote.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFFEFF4FF), borderRadius: BorderRadius.circular(12)),
+            child: Text('Klinik notu: $adminNote', style: tx(12, c: AppColors.primary, h: 1.4)),
+          ),
+        ],
+        if (a.isUpcoming) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => _cancel(context, ref),
+              child: Text('Randevuyu İptal Et', style: tx(12, w: FontWeight.w600, c: AppColors.danger)),
+            ),
+          ),
+        ],
       ]),
     );
   }

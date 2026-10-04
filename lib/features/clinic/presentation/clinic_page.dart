@@ -57,7 +57,7 @@ class _ClinicPageState extends State<ClinicPage> {
         const SizedBox(height: 16),
         Text('Son Teknoloji & Uzman Kadro ile Sağlıklı Gülüşler', style: tx(30, w: FontWeight.w700, c: AppColors.primary, h: 1.2)),
         const SizedBox(height: 8),
-        Text('DentNova, dijital görüntüleme ve ileri cerrahi protokolleriyle diş hekimliğini kaygısız, konforlu ve estetik bir deneyime dönüştürür.',
+        Text('Mustafa Erkan Klinik, dijital görüntüleme ve ileri cerrahi protokolleriyle diş hekimliğini kaygısız, konforlu ve estetik bir deneyime dönüştürür.',
             style: tx(13, c: AppColors.muted, h: 1.5)),
         const SizedBox(height: 16),
         Row(children: [
@@ -260,7 +260,7 @@ class _ClinicPageState extends State<ClinicPage> {
       height: 150,
       child: ListView(scrollDirection: Axis.horizontal, children: [
         _review('Ece Sözeri', 'Hollywood Smile Tedavisi',
-            'Diş hekimi korkumu DentNova sayesinde yendim. Dijital tasarım aşamasında gülüşümü görüp karar vermek inanılmaz güvendi.'),
+            'Diş hekimi korkumu Mustafa Erkan sayesinde yendim. Dijital tasarım aşamasında gülüşümü görüp karar vermek inanılmaz güvendi.'),
         const SizedBox(width: 12),
         _review('Burak K.', 'İmplant Tedavisi',
             'Lazerli implant sonrası neredeyse hiç ağrı hissetmedim. Ekip çok ilgili ve süreç şeffaftı.'),

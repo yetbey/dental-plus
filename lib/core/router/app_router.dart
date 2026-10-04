@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_appointments_screen.dart';
 import '../../features/appointments/presentation/appointment_page.dart';
 import '../../features/auth/presentation/account_security_screen.dart';
 import '../../features/auth/presentation/auth_providers.dart';
@@ -137,7 +137,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: AppRoutes.admin,
-        builder: (_, _) => const AdminDashboardScreen(),
+        builder: (_, _) => const AdminAppointmentsScreen(),
       ),
       GoRoute(
         path: AppRoutes.accountSecurity,

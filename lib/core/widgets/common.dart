@@ -78,7 +78,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
         Image.asset('assets/images/logo.png', width: 36, height: 36),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text('DentNova', style: tx(11, w: FontWeight.w600, c: AppColors.secondary)),
+          Text('Mustafa Erkan Dental', style: tx(11, w: FontWeight.w600, c: AppColors.secondary)),
           Text(title, style: tx(18, w: FontWeight.w700, c: AppColors.primary)),
         ]),
       ]),
