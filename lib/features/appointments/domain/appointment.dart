@@ -6,7 +6,7 @@ extension AppointmentStatusX on AppointmentStatus {
   String get label => switch (this) {
     AppointmentStatus.pending => 'Onay Bekliyor',
     AppointmentStatus.confirmed => 'Onaylandı',
-    AppointmentStatus.rejected => 'Reddedildi.',
+    AppointmentStatus.rejected => 'Reddedildi',
     AppointmentStatus.cancelled => 'İptal Edildi',
     AppointmentStatus.completed => 'Tamamlandı',
   };
@@ -25,6 +25,7 @@ class Appointment {
     this.doctorName,
     this.note,
     this.adminNote,
+    this.source = 'app',
   });
 
   final String id;
@@ -37,11 +38,14 @@ class Appointment {
   final AppointmentStatus status;
   final String? note;
   final String? adminNote;
+  final String source; // 'app' ya da 'admin'
   final DateTime createdAt;
+
+  bool get isManual => source == 'admin';
 
   bool get isActive =>
       status == AppointmentStatus.pending ||
-    status == AppointmentStatus.confirmed;
+          status == AppointmentStatus.confirmed;
 
   bool get isUpcoming => isActive && start.isAfter(DateTime.now());
 
@@ -60,8 +64,8 @@ class Appointment {
       ),
       note: m['note'] as String?,
       adminNote: m['adminNote'] as String?,
+      source: m['source'] as String? ?? 'app',
       createdAt: (m['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
-
 }

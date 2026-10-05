@@ -36,3 +36,7 @@ class PreselectedTreatment extends Notifier<String?> {
 
 final preselectedTreatmentProvider =
 NotifierProvider<PreselectedTreatment, String?>(PreselectedTreatment.new);
+
+final blockedSlotsProvider = StreamProvider.autoDispose<List<BlockedSlot>>((ref) {
+  return ref.watch(appointmentRepositoryProvider).watchBlockedSlots();
+});

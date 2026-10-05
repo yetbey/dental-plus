@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../router/shell_index.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
   const MainShell({super.key, required this.shell});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: shell,
-    bottomNavigationBar: _BottomBar(
-      index: shell.currentIndex,
-      onTap: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-    ),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shellIndexProvider.notifier).set(shell.currentIndex);
+    });
+    return Scaffold(
+      body: shell,
+      bottomNavigationBar: _BottomBar(
+        index: shell.currentIndex,
+        onTap: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+      ),
+    );
+  }
 }
 
 class _BottomBar extends StatelessWidget {

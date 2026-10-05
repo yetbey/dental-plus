@@ -12,6 +12,8 @@ import '../../appointments/data/appointment_repository.dart';
 import '../../appointments/domain/appointment.dart';
 import '../../appointments/domain/clinic_schedule.dart';
 import '../../clinic/presentation/clinic_providers.dart';
+import 'admin_manual_booking_sheet.dart';
+import 'admin_patient_sheet.dart';
 
 const _monthNames = [
   'Ocak',
@@ -120,6 +122,8 @@ class AdminAppointmentsScreen extends ConsumerWidget {
                     context.push('/admin/articles');
                   case 'clinic':
                     context.push('/admin/clinic');
+                  case 'closures':
+                    context.push('/admin/closures');
                   case 'seed':
                     try {
                       final done = await ref
@@ -156,6 +160,7 @@ class AdminAppointmentsScreen extends ConsumerWidget {
                   child: Text('Örnek verileri yükle'),
                 ),
                 PopupMenuItem(value: 'clinic', child: Text('Klinik bilgileri')),
+                PopupMenuItem(value: 'closures', child: Text('Kapalı günler')),
                 PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'account',
@@ -176,6 +181,13 @@ class AdminAppointmentsScreen extends ConsumerWidget {
               const Tab(text: 'Geçmiş'),
             ],
           ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => showManualBookingSheet(context),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: Text('Randevu Ekle', style: tx(13, w: FontWeight.w600, c: Colors.white)),
         ),
         body: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -217,7 +229,7 @@ class _AdminList extends StatelessWidget {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) => _AdminCard(items[i]),
@@ -283,6 +295,10 @@ class _AdminCard extends ConsumerWidget {
                   style: tx(16, w: FontWeight.w700, c: AppColors.primary),
                 ),
               ),
+              if (a.isManual) ...[
+                const SizedBox(width: 8),
+                const Tag('Elle eklendi', bg: Color(0xFFF1F5F9), fg: AppColors.muted),
+              ],
               const SizedBox(width: 8),
               Tag(a.status.label, bg: bg, fg: fg),
             ],
@@ -338,6 +354,20 @@ class _AdminCard extends ConsumerWidget {
               style: tx(12, c: AppColors.primary, h: 1.4),
             ),
           ],
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => showPatientSheet(context, a),
+              icon: const Icon(Icons.person_search_outlined, size: 18),
+              label: Text('Hasta bilgileri', style: tx(12, w: FontWeight.w600, c: AppColors.secondary)),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
           if (a.status == AppointmentStatus.pending) ...[
             const SizedBox(height: 12),
             Row(

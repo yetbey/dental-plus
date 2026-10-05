@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/admin/presentation/admin_appointments_screen.dart';
 import '../../features/admin/presentation/admin_articles_screen.dart';
 import '../../features/admin/presentation/admin_clinic_screen.dart';
+import '../../features/admin/presentation/admin_closures_screen.dart';
 import '../../features/admin/presentation/admin_doctor_screen.dart';
 import '../../features/admin/presentation/admin_treatments_screen.dart';
 import '../../features/appointments/presentation/appointment_page.dart';
@@ -165,6 +166,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/clinic',
         builder: (_, _) => const AdminClinicScreen(),
+      ),
+
+      GoRoute(
+        path: '/admin/closures',
+        builder: (_, _) => const AdminClosuresScreen(),
       ),
 
       GoRoute(

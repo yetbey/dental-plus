@@ -92,6 +92,54 @@ class AppointmentRepository {
     return apptRef.id;
   }
 
+  /// Admin: telefonla ya da yüz yüze gelen, uygulamada kaydı olmayan hasta için randevu.
+  Future<String> bookByAdmin({
+    required String patientName,
+    required String patientPhone,
+    required String treatment,
+    required DateTime start,
+    String? note,
+  }) async {
+    final invalidTime = !ClinicSchedule.isOpenDay(start) ||
+        start.minute != 0 ||
+        start.hour < ClinicSchedule.firstHour ||
+        start.hour > ClinicSchedule.lastHour;
+    if (invalidTime) {
+      throw const AppointmentException('Seçilen saat randevuya uygun değil.');
+    }
+    if (!start.isAfter(DateTime.now())) {
+      throw const AppointmentException('Geçmiş bir saate randevu eklenemez.');
+    }
+
+    final slotRef = _slots.doc(ClinicSchedule.slotId(start));
+    final apptRef = _appointments.doc();
+    final cleanNote = note?.trim();
+
+    await _db.runTransaction((tx) async {
+      final slot = await tx.get(slotRef);
+      if (slot.exists) throw const SlotTakenException();
+
+      tx.set(slotRef, {
+        'appointmentId': apptRef.id,
+        'start': Timestamp.fromDate(start),
+      });
+      tx.set(apptRef, {
+        'patientId': '',
+        'patientName': patientName.trim(),
+        'patientPhone': patientPhone.trim(),
+        'treatment': treatment,
+        'start': Timestamp.fromDate(start),
+        'status': AppointmentStatus.confirmed.name,
+        'note': (cleanNote == null || cleanNote.isEmpty) ? null : cleanNote,
+        'source': 'admin',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+
+    return apptRef.id;
+  }
+
   /// Hasta kendi randevusunu iptal eder; saat tekrar boşa çıkar.
   Future<void> cancel(Appointment a) async {
     if (!a.isActive) {
@@ -123,6 +171,67 @@ class AppointmentRepository {
           .map((d) => Appointment.fromMap(d.data(), d.id))
           .toList()
         ..sort((a, b) => b.start.compareTo(a.start));
+      return list;
+    });
+  }
+
+  /// Admin: seçilen saatleri kapatır. Zaten dolu olanlar korunur.
+  Future<({int closed, int skipped})> closeSlots(
+      DateTime day,
+      Set<int> hours,
+      String reason,
+      ) async {
+    final from = DateTime(day.year, day.month, day.day);
+    final existing = await _slots
+        .where('start', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
+        .where('start', isLessThan: Timestamp.fromDate(from.add(const Duration(days: 1))))
+        .get();
+    final taken = existing.docs.map((d) => d.id).toSet();
+
+    final batch = _db.batch();
+    var closed = 0;
+    var skipped = 0;
+    for (final h in hours) {
+      final s = DateTime(day.year, day.month, day.day, h);
+      if (!s.isAfter(DateTime.now())) continue;
+      final id = ClinicSchedule.slotId(s);
+      if (taken.contains(id)) {
+        skipped++;
+        continue;
+      }
+      batch.set(_slots.doc(id), {
+        'appointmentId': '',
+        'start': Timestamp.fromDate(s),
+        'blocked': true,
+        'reason': reason.trim(),
+      });
+      closed++;
+    }
+    if (closed > 0) await batch.commit();
+    return (closed: closed, skipped: skipped);
+  }
+
+  Future<void> reopenSlots(List<String> slotIds) async {
+    final batch = _db.batch();
+    for (final id in slotIds) {
+      batch.delete(_slots.doc(id));
+    }
+    await batch.commit();
+  }
+
+  Stream<List<BlockedSlot>> watchBlockedSlots() {
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    return _slots.where('blocked', isEqualTo: true).snapshots().map((snap) {
+      final list = snap.docs
+          .map((d) => BlockedSlot(
+        id: d.id,
+        start: (d.data()['start'] as Timestamp).toDate(),
+        reason: d.data()['reason'] as String? ?? '',
+      ))
+          .where((s) => !s.start.isBefore(startOfToday))
+          .toList()
+        ..sort((a, b) => a.start.compareTo(b.start));
       return list;
     });
   }
@@ -167,4 +276,12 @@ class AppointmentRepository {
         .snapshots()
         .map((snap) => snap.docs.map((d) => Appointment.fromMap(d.data(), d.id)).toList());
   }
+}
+
+class BlockedSlot {
+  const BlockedSlot({required this.id, required this.start, required this.reason});
+
+  final String id;
+  final DateTime start;
+  final String reason;
 }
